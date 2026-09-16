@@ -49,6 +49,11 @@
   h1 {
     font-size: 22px;
     line-height: 1.3;
+    margin: 0 0 8px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
     margin: 0 0 20px;
   }
   .options {
@@ -71,6 +76,23 @@
     border-color: var(--accent);
     background: rgba(15,157,70,0.08);
     font-weight: 600;
+  }
+  input.email-input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 2px solid #E3E8E5;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input.email-input:focus { border-color: var(--accent-light); }
+  input.email-input.invalid { border-color: #E31212; }
+  .error-text {
+    color: #E31212;
+    font-size: 13px;
+    margin-top: 6px;
+    min-height: 16px;
   }
   .nav {
     display: flex;
@@ -126,33 +148,48 @@
 const QUESTIONS = [
   {
     key: "gender",
+    type: "choice",
     title: "Укажи свой пол",
     options: ["Женский", "Мужской"]
   },
   {
     key: "age",
+    type: "choice",
     title: "Сколько тебе лет?",
     options: ["18–29", "30–39", "40–49", "50+"]
   },
   {
     key: "activity",
+    type: "choice",
     title: "Сколько сейчас в среднем шагов проходишь в день?",
     options: ["Меньше 3000", "3000–6000", "6000–10000", "Больше 10000"]
   },
   {
     key: "goal",
+    type: "choice",
     title: "Какая твоя главная цель?",
     options: ["Снизить вес", "Повысить выносливость", "Снять стресс", "Выработать привычку двигаться"]
   },
   {
     key: "time",
+    type: "choice",
     title: "Сколько времени готов уделять прогулкам в день?",
     options: ["15 минут", "30 минут", "45 минут", "60 минут и больше"]
+  },
+  {
+    key: "email",
+    type: "email",
+    title: "На какую почту прислать план?",
+    subtitle: "Отправим персональный план прогулок сразу после квиза"
   }
 ];
 
 let current = 0;
 const answers = {};
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
 
 function render() {
   const app = document.getElementById("app");
@@ -165,35 +202,73 @@ function render() {
   const q = QUESTIONS[current];
   const selected = answers[q.key];
 
-  app.innerHTML = `
+  const progressHtml = `
     <div class="progress">
       ${QUESTIONS.map((_, i) => `<div class="progress-seg ${i <= current ? 'filled' : ''}"></div>`).join("")}
     </div>
+  `;
+
+  const titleHtml = `
     <h1>${q.title}</h1>
-    <div class="options">
-      ${q.options.map(opt => `
-        <button class="option ${selected === opt ? 'selected' : ''}" data-value="${opt}">${opt}</button>
-      `).join("")}
-    </div>
+    ${q.subtitle ? `<div class="subtitle">${q.subtitle}</div>` : ""}
+  `;
+
+  let bodyHtml = "";
+  if (q.type === "choice") {
+    bodyHtml = `
+      <div class="options">
+        ${q.options.map(opt => `
+          <button class="option ${selected === opt ? 'selected' : ''}" data-value="${opt}">${opt}</button>
+        `).join("")}
+      </div>
+    `;
+  } else if (q.type === "email") {
+    bodyHtml = `
+      <input type="email" class="email-input" id="emailInput" placeholder="you@example.com" value="${selected || ''}" />
+      <div class="error-text" id="emailError"></div>
+    `;
+  }
+
+  const nextEnabled = q.type === "email" ? !!(selected && isValidEmail(selected)) : !!selected;
+
+  app.innerHTML = `
+    ${progressHtml}
+    ${titleHtml}
+    ${bodyHtml}
     <div class="nav">
       <button class="btn-back" ${current === 0 ? 'disabled' : ''} id="backBtn">Назад</button>
-      <button class="btn-next" id="nextBtn" ${selected ? '' : 'disabled'}>Далее</button>
+      <button class="btn-next" id="nextBtn" ${nextEnabled ? '' : 'disabled'}>${q.type === 'email' ? 'Получить план' : 'Далее'}</button>
     </div>
   `;
 
-  document.querySelectorAll(".option").forEach(btn => {
-    btn.addEventListener("click", () => {
-      answers[q.key] = btn.dataset.value;
-      render();
+  if (q.type === "choice") {
+    document.querySelectorAll(".option").forEach(btn => {
+      btn.addEventListener("click", () => {
+        answers[q.key] = btn.dataset.value;
+        render();
+      });
     });
-  });
+  } else if (q.type === "email") {
+    const input = document.getElementById("emailInput");
+    const nextBtn = document.getElementById("nextBtn");
+    input.focus();
+    input.addEventListener("input", () => {
+      answers.email = input.value;
+      const valid = isValidEmail(input.value);
+      nextBtn.disabled = !valid;
+      input.classList.toggle("invalid", input.value.length > 0 && !valid);
+      document.getElementById("emailError").textContent =
+        input.value.length > 0 && !valid ? "Проверь формат почты" : "";
+    });
+  }
 
   document.getElementById("backBtn").addEventListener("click", () => {
     if (current > 0) { current--; render(); }
   });
 
   document.getElementById("nextBtn").addEventListener("click", () => {
-    if (answers[q.key]) { current++; render(); }
+    const valid = q.type === "email" ? isValidEmail(answers.email || "") : !!answers[q.key];
+    if (valid) { current++; render(); }
   });
 }
 
@@ -202,13 +277,14 @@ function renderResult() {
     <div class="result">
       <div class="emoji">🚶</div>
       <h1>Готово!</h1>
-      <p>Мы учли твои ответы и подготовили бы для тебя персональный план прогулок.</p>
+      <p>Мы учли твои ответы и отправили бы план прогулок на <b>${answers.email || "-"}</b>.</p>
       <div class="summary">
         <div><b>Пол:</b> ${answers.gender || "-"}</div>
         <div><b>Возраст:</b> ${answers.age || "-"}</div>
         <div><b>Активность сейчас:</b> ${answers.activity || "-"}</div>
         <div><b>Цель:</b> ${answers.goal || "-"}</div>
         <div><b>Время на прогулки:</b> ${answers.time || "-"}</div>
+        <div><b>Почта:</b> ${answers.email || "-"}</div>
       </div>
     </div>
   `;
