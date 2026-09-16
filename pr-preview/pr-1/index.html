@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Квиз: прогулки и ходьба</title>
+<style>
+  :root {
+    --accent: #0F9D46;
+    --accent-light: #22C55E;
+    --bg: #F4F7F5;
+    --text: #1A1E1B;
+    --muted: #6B756E;
+    --card-bg: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 32px 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  }
+  .progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .progress-seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #E3E8E5;
+    overflow: hidden;
+  }
+  .progress-seg.filled { background: var(--accent); }
+  h1 {
+    font-size: 22px;
+    line-height: 1.3;
+    margin: 0 0 20px;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  button.option {
+    text-align: left;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 2px solid #E3E8E5;
+    background: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  button.option:hover { border-color: var(--accent-light); }
+  button.option.selected {
+    border-color: var(--accent);
+    background: rgba(15,157,70,0.08);
+    font-weight: 600;
+  }
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+  }
+  .btn-back {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 8px;
+  }
+  .btn-back:disabled { visibility: hidden; }
+  .btn-next {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-next:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .result {
+    text-align: center;
+  }
+  .result .emoji { font-size: 48px; margin-bottom: 8px; }
+  .result p { color: var(--muted); font-size: 15px; line-height: 1.5; }
+  .result .summary {
+    text-align: left;
+    background: var(--bg);
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  .result .summary div { padding: 4px 0; }
+  .result .summary b { color: var(--text); }
+</style>
+</head>
+<body>
+  <div class="card" id="app"></div>
+
+<script>
+const QUESTIONS = [
+  {
+    key: "gender",
+    title: "Укажи свой пол",
+    options: ["Женский", "Мужской"]
+  },
+  {
+    key: "age",
+    title: "Сколько тебе лет?",
+    options: ["18–29", "30–39", "40–49", "50+"]
+  },
+  {
+    key: "activity",
+    title: "Сколько сейчас в среднем шагов проходишь в день?",
+    options: ["Меньше 3000", "3000–6000", "6000–10000", "Больше 10000"]
+  },
+  {
+    key: "goal",
+    title: "Какая твоя главная цель?",
+    options: ["Снизить вес", "Повысить выносливость", "Снять стресс", "Выработать привычку двигаться"]
+  },
+  {
+    key: "time",
+    title: "Сколько времени готов уделять прогулкам в день?",
+    options: ["15 минут", "30 минут", "45 минут", "60 минут и больше"]
+  }
+];
+
+let current = 0;
+const answers = {};
+
+function render() {
+  const app = document.getElementById("app");
+
+  if (current >= QUESTIONS.length) {
+    app.innerHTML = renderResult();
+    return;
+  }
+
+  const q = QUESTIONS[current];
+  const selected = answers[q.key];
+
+  app.innerHTML = `
+    <div class="progress">
+      ${QUESTIONS.map((_, i) => `<div class="progress-seg ${i <= current ? 'filled' : ''}"></div>`).join("")}
+    </div>
+    <h1>${q.title}</h1>
+    <div class="options">
+      ${q.options.map(opt => `
+        <button class="option ${selected === opt ? 'selected' : ''}" data-value="${opt}">${opt}</button>
+      `).join("")}
+    </div>
+    <div class="nav">
+      <button class="btn-back" ${current === 0 ? 'disabled' : ''} id="backBtn">Назад</button>
+      <button class="btn-next" id="nextBtn" ${selected ? '' : 'disabled'}>Далее</button>
+    </div>
+  `;
+
+  document.querySelectorAll(".option").forEach(btn => {
+    btn.addEventListener("click", () => {
+      answers[q.key] = btn.dataset.value;
+      render();
+    });
+  });
+
+  document.getElementById("backBtn").addEventListener("click", () => {
+    if (current > 0) { current--; render(); }
+  });
+
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    if (answers[q.key]) { current++; render(); }
+  });
+}
+
+function renderResult() {
+  return `
+    <div class="result">
+      <div class="emoji">🚶</div>
+      <h1>Готово!</h1>
+      <p>Мы учли твои ответы и подготовили бы для тебя персональный план прогулок.</p>
+      <div class="summary">
+        <div><b>Пол:</b> ${answers.gender || "-"}</div>
+        <div><b>Возраст:</b> ${answers.age || "-"}</div>
+        <div><b>Активность сейчас:</b> ${answers.activity || "-"}</div>
+        <div><b>Цель:</b> ${answers.goal || "-"}</div>
+        <div><b>Время на прогулки:</b> ${answers.time || "-"}</div>
+      </div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
