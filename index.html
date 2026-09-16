@@ -139,12 +139,103 @@
   }
   .result .summary div { padding: 4px 0; }
   .result .summary b { color: var(--text); }
+
+  .intro { text-align: center; }
+  .intro-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent);
+    letter-spacing: 0.2px;
+  }
+  .intro-illustration {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 22px;
+    line-height: 0;
+  }
+  .intro-illustration svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .intro h1 { text-align: center; }
+  .intro .subtitle { text-align: center; margin-bottom: 28px; }
+  .btn-start {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-start:hover { opacity: 0.92; }
+  .btn-start:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
   <div class="card" id="app"></div>
 
 <script>
+const LOGO_SVG = `
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="13" cy="4" r="2" fill="#0F9D46"/>
+    <path d="M12 6L11 13M12 6L9 8M12 6L15 5M11 13L8 19M11 13L14 16L13 20" stroke="#0F9D46" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+`;
+
+const HERO_SVG = `
+  <svg viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="360" height="240" rx="0" fill="#EAF7EE"/>
+    <circle cx="300" cy="55" r="26" fill="#FFD166"/>
+    <g stroke="#FFD166" stroke-width="4" stroke-linecap="round">
+      <line x1="300" y1="12" x2="300" y2="2"/>
+      <line x1="333" y1="22" x2="340" y2="15"/>
+      <line x1="343" y1="55" x2="353" y2="55"/>
+      <line x1="333" y1="88" x2="340" y2="95"/>
+    </g>
+    <g fill="#FFFFFF" opacity="0.9">
+      <ellipse cx="58" cy="48" rx="26" ry="14"/>
+      <ellipse cx="80" cy="44" rx="18" ry="12"/>
+      <ellipse cx="38" cy="44" rx="16" ry="10"/>
+    </g>
+    <path d="M0 190 Q90 150 180 185 T360 180 V240 H0 Z" fill="#CDEBD6"/>
+    <path d="M0 212 Q120 178 240 206 T360 206 V240 H0 Z" fill="#B7E3C3"/>
+    <path d="M30 206 Q120 166 190 191 T330 160" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-dasharray="2 18"/>
+    <g>
+      <rect x="46" y="165" width="6" height="20" rx="3" fill="#8A6E4B"/>
+      <circle cx="49" cy="158" r="16" fill="#4FAE6B"/>
+    </g>
+    <g>
+      <rect x="308" y="118" width="6" height="22" rx="3" fill="#8A6E4B"/>
+      <circle cx="311" cy="110" r="18" fill="#3F9C5C"/>
+    </g>
+    <g fill="#0F9D46" opacity="0.5">
+      <ellipse cx="95" cy="184" rx="4" ry="6" transform="rotate(-20 95 184)"/>
+      <ellipse cx="112" cy="176" rx="4" ry="6" transform="rotate(-15 112 176)"/>
+      <ellipse cx="228" cy="179" rx="4" ry="6" transform="rotate(10 228 179)"/>
+      <ellipse cx="246" cy="170" rx="4" ry="6" transform="rotate(15 246 170)"/>
+    </g>
+    <g transform="translate(150,90)">
+      <circle cx="26" cy="8" r="10" fill="#0F9D46"/>
+      <path d="M26 18 L22 46" stroke="#0F9D46" stroke-width="7" stroke-linecap="round"/>
+      <path d="M26 24 L12 34" stroke="#0F9D46" stroke-width="6" stroke-linecap="round"/>
+      <path d="M26 24 L40 16" stroke="#0F9D46" stroke-width="6" stroke-linecap="round"/>
+      <path d="M22 46 L10 72" stroke="#0F9D46" stroke-width="7" stroke-linecap="round"/>
+      <path d="M22 46 L36 60 L34 76" stroke="#0F9D46" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+  </svg>
+`;
+
 const QUESTIONS = [
   {
     key: "gender",
@@ -184,6 +275,7 @@ const QUESTIONS = [
   }
 ];
 
+let screen = "intro"; // "intro" | "quiz"
 let current = 0;
 const answers = {};
 
@@ -191,8 +283,32 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function renderIntro() {
+  return `
+    <div class="intro">
+      <div class="intro-logo">
+        ${LOGO_SVG}
+        <span>WalkQuiz</span>
+      </div>
+      <div class="intro-illustration">${HERO_SVG}</div>
+      <h1>Сколько шагов нужно именно тебе?</h1>
+      <div class="subtitle">Пройди короткий тест из 5 вопросов и получи персональный план прогулок на почту</div>
+      <button class="btn-start" id="startBtn">Начать тест</button>
+    </div>
+  `;
+}
+
 function render() {
   const app = document.getElementById("app");
+
+  if (screen === "intro") {
+    app.innerHTML = renderIntro();
+    document.getElementById("startBtn").addEventListener("click", () => {
+      screen = "quiz";
+      render();
+    });
+    return;
+  }
 
   if (current >= QUESTIONS.length) {
     app.innerHTML = renderResult();
@@ -236,7 +352,7 @@ function render() {
     ${titleHtml}
     ${bodyHtml}
     <div class="nav">
-      <button class="btn-back" ${current === 0 ? 'disabled' : ''} id="backBtn">Назад</button>
+      <button class="btn-back" id="backBtn">Назад</button>
       <button class="btn-next" id="nextBtn" ${nextEnabled ? '' : 'disabled'}>${q.type === 'email' ? 'Получить план' : 'Далее'}</button>
     </div>
   `;
@@ -264,6 +380,7 @@ function render() {
 
   document.getElementById("backBtn").addEventListener("click", () => {
     if (current > 0) { current--; render(); }
+    else { screen = "intro"; render(); }
   });
 
   document.getElementById("nextBtn").addEventListener("click", () => {
